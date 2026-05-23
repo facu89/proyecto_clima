@@ -149,8 +149,9 @@ function ConditionIcon({ precipProb, hour, isWarm }: { precipProb: number; hour:
   );
 }
 
-// ── Rain particles — only rendered when precipProb > 30 ───────
-const MAX_PARTICLES = 60;
+// ── Rain particles — only rendered when precipProb >= 15 ───────
+const MAX_PARTICLES = 120;
+const MIN_PRECIP    = 15;
 
 function RainParticles({ precipProb }: { precipProb: number }) {
   // Scale particle count and opacity with actual probability
@@ -164,13 +165,13 @@ function RainParticles({ precipProb }: { precipProb: number }) {
         top:      `${seededVal(i, 1) * 100}%`,
         delay:    `${seededVal(i, 2) * 5}s`,
         duration: `${2.5 + seededVal(i, 3) * 3.5}s`,
-        size:     seededVal(i, 4) > 0.6 ? 1.5 : 1,
-        height:   8 + seededVal(i, 5) * 12,
+        size:     seededVal(i, 4) > 0.6 ? 3 : 2,
+        height:   16 + seededVal(i, 5) * 24,
       })),
     []
   );
 
-  if (count === 0) return null;
+  if (precipProb < MIN_PRECIP) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
