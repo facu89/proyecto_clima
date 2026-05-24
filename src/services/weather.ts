@@ -1,4 +1,7 @@
 import { APIOpenMeteo } from './api/APIOpenMeteo';
+import { ILocation, Coordinates } from './api/ILocation';
+import { ApiGeoLocation } from './api/GeoLocation';
+import { ApiNominatim } from './api/Nominatim';
 
 export interface OpenMeteoHourly {
   time: string[];
@@ -30,10 +33,26 @@ export interface RadarDataPoint {
 }
 
 export class WeatherAdapter {
-  constructor(private api: APIOpenMeteo = new APIOpenMeteo()) {}
+  private lastCoords: Coordinates = { lat: -45.86, lon: -67.48 };
 
-  async getWeatherData(lat = -45.86, lon = -67.48): Promise<OpenMeteoResponse> {
-    return this.api.fetchWeatherData(lat, lon);
+  constructor(
+    private api: APIOpenMeteo = new APIOpenMeteo(),
+    private location: ILocation = new ApiGeoLocation(),
+    private nominatim: ApiNominatim = new ApiNominatim()
+  ) {}
+
+  setLocation(location: ILocation): void {
+    this.location = location;
+  }
+
+  async getWeatherData(): Promise<OpenMeteoResponse> {
+    const DEFAULT: Coordinates = { lat: -45.86, lon: -67.48 };
+    this.lastCoords = await this.location.getLocation().catch(() => DEFAULT);
+    return this.api.fetchWeatherData(this.lastCoords.lat, this.lastCoords.lon);
+  }
+
+  async getCityName(): Promise<string> {
+    return this.nominatim.getCityName(this.lastCoords.lat, this.lastCoords.lon);
   }
 
   normalizeRadarData(data: OpenMeteoResponse, hourIndex: number): RadarDataPoint[] {

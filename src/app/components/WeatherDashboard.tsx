@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { WeatherAdapter, OpenMeteoResponse } from "@/services/weather";
+import { ApiGeoLocation } from "@/services/api/GeoLocation";
+import { ApiMapa } from "@/services/api/ApiMapa";
+import { ILocation } from "@/services/api/ILocation";
+import MapModal from "./MapModal";
 import WeatherRadar from "./radar";
 import InfoCard from "./InfoCard";
 import { Slider } from "@/components/ui/slider";
@@ -30,6 +34,19 @@ const THEME = {
       "[&_[role=slider]]:border-orange-400 [&_[role=slider]]:text-orange-400 text-orange-400",
     label: "Clima Cálido",
   },
+  warm: {
+    bg: "linear-gradient(145deg, #78350f 0%, #b45309 25%, #d97706 55%, #f59e0b 78%, #fde68a 100%)",
+    orb1: "rgba(245,158,11,0.18)",
+    orb2: "rgba(234,88,12,0.12)",
+    radarColor: "#f59e0b",
+    glowColor: "rgba(245,158,11,0.45)",
+    border: "rgba(245,158,11,0.28)",
+    accentText: "text-amber-300",
+    accentIcon: "text-amber-400",
+    sliderClass:
+      "[&_[role=slider]]:border-amber-400 [&_[role=slider]]:text-amber-400 text-amber-400",
+    label: "Clima Templado",
+  },
   blue: {
     bg: "linear-gradient(145deg, #1e3a8a 0%, #2563eb 30%, #3b82f6 58%, #93c5fd 82%, #dbeafe 100%)",
     orb1: "rgba(96,165,250,0.18)",
@@ -49,14 +66,15 @@ type ThemeKey = keyof typeof THEME;
 
 // ── Condition icons ───────────────────────────────────────────
 
+const r = (n: number) => Math.round(n * 1000) / 1000;
 const SUN_RAYS = Array.from({ length: 12 }, (_, i) => {
   const a = (i * 30 * Math.PI) / 180;
-  return { x1: 50 + 37 * Math.cos(a), y1: 50 + 37 * Math.sin(a), x2: 50 + 48 * Math.cos(a), y2: 50 + 48 * Math.sin(a) };
+  return { x1: r(50 + 37 * Math.cos(a)), y1: r(50 + 37 * Math.sin(a)), x2: r(50 + 48 * Math.cos(a)), y2: r(50 + 48 * Math.sin(a)) };
 });
 
 function SunScene() {
   return (
-    <div className="relative w-32 h-32">
+    <div className="relative w-24 h-24">
       <div className="absolute rounded-full blur-3xl animate-radar-pulse" style={{ inset: "-50%", background: "rgba(251,191,36,0.22)" }} />
       <div className="absolute rounded-full blur-xl animate-radar-pulse" style={{ inset: "-15%", background: "rgba(251,191,36,0.18)", animationDelay: "1s" }} />
       <svg className="absolute animate-spin-slow" style={{ inset: "-14%", width: "128%", height: "128%" }} viewBox="0 0 100 100">
@@ -136,15 +154,15 @@ function ConditionIcon({ precipProb, hour, isWarm }: { precipProb: number; hour:
         <motion.div key="moon" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
           <MoonScene />
         </motion.div>
-      ) : isWarm && isClear ? (
+      ) : isClear ? (
         <motion.div key="sun" initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}>
           <SunScene />
         </motion.div>
-      ) : isWarm ? (
+      ) : (
         <motion.div key="suncloud" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }}>
           <SunCloudScene />
         </motion.div>
-      ) : null}
+      )}
     </AnimatePresence>
   );
 }
@@ -203,26 +221,45 @@ export default function WeatherDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHour, setSelectedHour] = useState<number>(new Date().getHours());
+  const [cityName, setCityName] = useState<string>('Obteniendo ubicación...');
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const mapaRef = useRef(new ApiMapa());
+
+  async function loadData() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const weather = await adapter.current.getWeatherData();
+      setData(weather);
+      const name = await adapter.current.getCityName().catch(() => 'Ubicación desconocida');
+      setCityName(name);
+    } catch {
+      setError("Error al cargar los datos del clima");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function switchLocation(location: ILocation) {
+    adapter.current.setLocation(location);
+    loadData();
+  }
+
+  function handleMapConfirm() {
+    setIsMapOpen(false);
+    switchLocation(mapaRef.current);
+  }
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const weather = await adapter.current.getWeatherData(-45.86, -67.48);
-        setData(weather);
-      } catch {
-        setError("Error al cargar los datos del clima");
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const hourlyData = data?.hourly;
   const currentTemp = hourlyData?.temperature_2m[selectedHour] ?? 0;
 
   const themeKey: ThemeKey = useMemo(
-    () => (currentTemp > 15 ? "orange" : "blue"),
+    () => currentTemp > 20 ? "orange" : currentTemp > 15 ? "warm" : "blue",
     [currentTemp]
   );
   const theme = THEME[themeKey];
@@ -285,7 +322,7 @@ export default function WeatherDashboard() {
         <ConditionIcon
           precipProb={hourlyData?.precipitation_probability[selectedHour] ?? 0}
           hour={selectedHour}
-          isWarm={themeKey === "orange"}
+          isWarm={themeKey !== "blue"}
         />
       </div>
 
@@ -296,10 +333,17 @@ export default function WeatherDashboard() {
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">
               Radar Climático
             </h1>
-            <p className={cn("flex items-center gap-2 mt-2 font-medium", theme.accentText)}>
+            <button
+              onClick={() => setIsMapOpen(true)}
+              className={cn(
+                "flex items-center gap-2 mt-2 font-medium hover:opacity-80 transition cursor-pointer group",
+                theme.accentText
+              )}
+            >
               <MapPin className="w-4 h-4" />
-              Comodoro Rivadavia, Chubut
-            </p>
+              <span className="group-hover:underline underline-offset-4 decoration-2">{cityName}</span>
+              <span className="text-xs opacity-60">(cambiar)</span>
+            </button>
           </div>
 
           {/* Clock badge */}
@@ -336,7 +380,7 @@ export default function WeatherDashboard() {
               <h2 className="text-base font-semibold text-white/55 tracking-wide uppercase text-xs">
                 Proyección del estado del tiempo
               </h2>
-              {themeKey === "orange" ? (
+              {themeKey !== "blue" ? (
                 <Sun className="w-5 h-5 text-orange-400 animate-spin-slow" />
               ) : (
                 <CloudRain className="w-5 h-5 text-blue-300 animate-pulse" />
@@ -412,6 +456,14 @@ export default function WeatherDashboard() {
           </div>
         </div>
       </div>
+
+      {isMapOpen && (
+        <MapModal
+          apiMapa={mapaRef.current}
+          onConfirm={handleMapConfirm}
+          onClose={() => setIsMapOpen(false)}
+        />
+      )}
     </div>
   );
 }
