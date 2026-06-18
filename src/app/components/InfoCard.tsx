@@ -12,6 +12,7 @@ interface InfoCardProps {
     border: string;
     glowColor: string;
     accentIcon: string;
+    accentIconStrong: string;
   };
   isMobile?: boolean;
 }
@@ -33,8 +34,8 @@ export default class InfoCard extends Component<InfoCardProps> {
       >
         <div className="flex items-center gap-4">
           <div
-            className={cn("p-3 rounded-full", theme.accentIcon)}
-            style={{ background: theme.glowColor.replace("0.45", "0.15") }}
+            className={cn("p-3 rounded-full", theme.accentIconStrong)}
+            style={{ background: theme.glowColor.replace("0.45", "0.25") }}
           >
             {icon}
           </div>

@@ -49,6 +49,7 @@ const THEME = {
     border: "rgba(251,146,60,0.28)",
     accentText: "text-orange-300",
     accentIcon: "text-orange-400",
+    accentIconStrong: "text-orange-600",
     sliderClass:
       "[&_[role=slider]]:border-orange-400 [&_[role=slider]]:text-orange-400 text-orange-400",
     label: "Clima Cálido",
@@ -62,6 +63,7 @@ const THEME = {
     border: "rgba(245,158,11,0.28)",
     accentText: "text-amber-300",
     accentIcon: "text-amber-400",
+    accentIconStrong: "text-amber-600",
     sliderClass:
       "[&_[role=slider]]:border-amber-400 [&_[role=slider]]:text-amber-400 text-amber-400",
     label: "Clima Templado",
@@ -75,6 +77,7 @@ const THEME = {
     border: "rgba(96,165,250,0.28)",
     accentText: "text-blue-300",
     accentIcon: "text-blue-400",
+    accentIconStrong: "text-blue-600",
     sliderClass:
       "[&_[role=slider]]:border-blue-400 [&_[role=slider]]:text-blue-400 text-blue-400",
     label: "Clima Fresco",
@@ -93,7 +96,7 @@ const SUN_RAYS = Array.from({ length: 12 }, (_, i) => {
 
 function SunScene() {
   return (
-    <div className="relative w-24 h-24">
+    <div className="relative w-20 h-20">
       <div className="absolute rounded-full blur-3xl animate-radar-pulse" style={{ inset: "-50%", background: "rgba(251,191,36,0.22)" }} />
       <div className="absolute rounded-full blur-xl animate-radar-pulse" style={{ inset: "-15%", background: "rgba(251,191,36,0.18)", animationDelay: "1s" }} />
       <svg className="absolute animate-spin-slow" style={{ inset: "-14%", width: "128%", height: "128%" }} viewBox="0 0 100 100">
@@ -170,15 +173,15 @@ function ConditionIcon({ precipProb, hour, isWarm }: { precipProb: number; hour:
   return (
     <AnimatePresence mode="wait">
       {isNight ? (
-        <motion.div key="moon" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.div key="moon" className="flex items-center justify-center w-44 h-44" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
           <MoonScene />
         </motion.div>
       ) : isClear ? (
-        <motion.div key="sun" initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.div key="sun" className="flex items-center justify-center w-44 h-44" initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}>
           <SunScene />
         </motion.div>
       ) : (
-        <motion.div key="suncloud" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }}>
+        <motion.div key="suncloud" className="flex items-center justify-center w-44 h-44" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }}>
           <SunCloudScene />
         </motion.div>
       )}

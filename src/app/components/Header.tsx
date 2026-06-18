@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CloudSun, Globe } from "lucide-react";
+import { CloudSun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -60,7 +60,7 @@ export default function Header({ theme, isMobile }: HeaderProps) {
 
   return (
     <header
-      className="w-full rounded-2xl px-5 py-3 flex items-center justify-between gap-4 transition-all duration-700"
+      className="w-full rounded-2xl px-4 sm:px-5 py-3 flex items-center justify-between gap-3 transition-all duration-700"
       style={{
         background: "rgba(255,255,255,0.07)",
         backdropFilter: isMobile ? "blur(4px)" : "blur(18px)",
@@ -70,7 +70,7 @@ export default function Header({ theme, isMobile }: HeaderProps) {
       }}
     >
       {/* Marca */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 flex-shrink-0">
         <div
           className={cn("p-2 rounded-xl", theme.accentIcon)}
           style={{ background: theme.glowColor.replace("0.45", "0.16") }}
@@ -83,30 +83,27 @@ export default function Header({ theme, isMobile }: HeaderProps) {
       </div>
 
       {/* Reloj mundial rotativo */}
-      <div className="flex items-center gap-3 min-w-0">
-        <Globe className={cn("w-4 h-4 flex-shrink-0 animate-spin-slow", theme.accentIcon)} />
-        <div className="relative h-9 flex items-center overflow-hidden" style={{ minWidth: isMobile ? 120 : 170 }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={city.name}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col items-end leading-tight w-full"
+      <div className="relative h-9 flex items-center overflow-hidden min-w-0" style={{ minWidth: isMobile ? 76 : 150 }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={city.name}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-end leading-tight w-full min-w-0"
+          >
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wider text-white/75 truncate max-w-full"
+              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)" }}
             >
-              <span
-                className="text-[10px] font-semibold uppercase tracking-wider text-white/75 truncate max-w-full"
-                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.35)" }}
-              >
-                {city.name}
-              </span>
-              <span className="text-lg font-bold font-mono tracking-tight text-white tabular-nums">
-                {time}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              {city.name}
+            </span>
+            <span className="text-lg font-bold font-mono tracking-tight text-white tabular-nums">
+              {time}
+            </span>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </header>
   );
