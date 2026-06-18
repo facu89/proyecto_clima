@@ -1,6 +1,6 @@
 import { APIOpenMeteo } from './api/APIOpenMeteo';
 import { ILocation, Coordinates } from './api/ILocation';
-import { ApiGeoLocation } from './api/GeoLocation';
+import { StoredLocation } from './api/StoredLocation';
 import { ApiNominatim } from './api/Nominatim';
 
 export interface OpenMeteoHourly {
@@ -10,6 +10,7 @@ export interface OpenMeteoHourly {
   precipitation_probability: number[];
   wind_speed_10m: number[];
   uv_index: number[];
+  cloud_cover: number[];
 }
 
 export interface OpenMeteoResponse {
@@ -37,7 +38,7 @@ export class WeatherAdapter {
 
   constructor(
     private api: APIOpenMeteo = new APIOpenMeteo(),
-    private location: ILocation = new ApiGeoLocation(),
+    private location: ILocation = new StoredLocation(),
     private nominatim: ApiNominatim = new ApiNominatim()
   ) {}
 

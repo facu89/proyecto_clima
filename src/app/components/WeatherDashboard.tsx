@@ -2,12 +2,18 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { WeatherAdapter, OpenMeteoResponse } from "@/services/weather";
-import { ApiGeoLocation } from "@/services/api/GeoLocation";
+import { WeatherAnalyzer } from "@/services/WeatherAnalyzer";
 import { ApiMapa } from "@/services/api/ApiMapa";
 import { ILocation } from "@/services/api/ILocation";
+import { LocationStorage } from "@/services/LocationStorage";
 import MapModal from "./MapModal";
 import WeatherRadar from "./radar";
 import InfoCard from "./InfoCard";
+import Feature from "./Feature";
+import DayTabs from "./DayTabs";
+import Header from "./Header";
+import Footer from "./Footer";
+import { Eye, Footprints } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sun, Wind, Thermometer, Droplets, MapPin, Clock, CloudRain } from "lucide-react";
@@ -17,6 +23,19 @@ import { cn } from "@/lib/utils";
 // ── Deterministic pseudo-random (avoids hydration mismatch) ──
 function seededVal(i: number, offset = 0) {
   return ((Math.sin(i * 127.1 + offset * 311.7) * 43758.5453) % 1 + 1) % 1;
+}
+
+// ── Mobile detection (reduces particles, blur and animations) ──
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isMobile;
 }
 
 // ── Theme config ─────────────────────────────────────────────
@@ -35,7 +54,7 @@ const THEME = {
     label: "Clima Cálido",
   },
   warm: {
-    bg: "linear-gradient(145deg, #78350f 0%, #b45309 25%, #d97706 55%, #f59e0b 78%, #fde68a 100%)",
+    bg: "linear-gradient(145deg, #78350f 0%, #b45309 28%, #d97706 58%, #ea9a16 82%, #f59e0b 100%)",
     orb1: "rgba(245,158,11,0.18)",
     orb2: "rgba(234,88,12,0.12)",
     radarColor: "#f59e0b",
@@ -48,7 +67,7 @@ const THEME = {
     label: "Clima Templado",
   },
   blue: {
-    bg: "linear-gradient(145deg, #1e3a8a 0%, #2563eb 30%, #3b82f6 58%, #93c5fd 82%, #dbeafe 100%)",
+    bg: "linear-gradient(145deg, #1e3a8a 0%, #2563eb 32%, #3b82f6 62%, #60a5fa 86%, #93c5fd 100%)",
     orb1: "rgba(96,165,250,0.18)",
     orb2: "rgba(99,102,241,0.12)",
     radarColor: "#60a5fa",
@@ -168,10 +187,12 @@ function ConditionIcon({ precipProb, hour, isWarm }: { precipProb: number; hour:
 }
 
 // ── Rain particles — only rendered when precipProb >= 15 ───────
-const MAX_PARTICLES = 120;
-const MIN_PRECIP    = 15;
+const MAX_PARTICLES_DESKTOP = 120;
+const MAX_PARTICLES_MOBILE  = 35;
+const MIN_PRECIP            = 15;
 
-function RainParticles({ precipProb }: { precipProb: number }) {
+function RainParticles({ precipProb, isMobile }: { precipProb: number; isMobile: boolean }) {
+  const MAX_PARTICLES = isMobile ? MAX_PARTICLES_MOBILE : MAX_PARTICLES_DESKTOP;
   // Scale particle count and opacity with actual probability
   const count   = Math.round((precipProb / 100) * MAX_PARTICLES);
   const opacity = 0.15 + (precipProb / 100) * 0.45;
@@ -186,7 +207,7 @@ function RainParticles({ precipProb }: { precipProb: number }) {
         size:     seededVal(i, 4) > 0.6 ? 3 : 2,
         height:   16 + seededVal(i, 5) * 24,
       })),
-    []
+    [MAX_PARTICLES]
   );
 
   if (precipProb < MIN_PRECIP) return null;
@@ -221,9 +242,13 @@ export default function WeatherDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHour, setSelectedHour] = useState<number>(new Date().getHours());
+  const [selectedDay, setSelectedDay] = useState<number>(0);
   const [cityName, setCityName] = useState<string>('Obteniendo ubicación...');
   const [isMapOpen, setIsMapOpen] = useState(false);
   const mapaRef = useRef(new ApiMapa());
+  const analyzer = useRef(new WeatherAnalyzer());
+  const storage = useRef(new LocationStorage());
+  const isMobile = useIsMobile();
 
   async function loadData() {
     setIsLoading(true);
@@ -245,8 +270,11 @@ export default function WeatherDashboard() {
     loadData();
   }
 
-  function handleMapConfirm() {
+  async function handleMapConfirm() {
     setIsMapOpen(false);
+    // Guarda la ubicación seleccionada para usarla en la próxima visita.
+    const coords = await mapaRef.current.getLocation();
+    storage.current.save(coords);
     switchLocation(mapaRef.current);
   }
 
@@ -256,7 +284,9 @@ export default function WeatherDashboard() {
   }, []);
 
   const hourlyData = data?.hourly;
-  const currentTemp = hourlyData?.temperature_2m[selectedHour] ?? 0;
+  // Índice global dentro del array de 168 horas (7 días × 24 h).
+  const hourIndex = selectedDay * 24 + selectedHour;
+  const currentTemp = hourlyData?.temperature_2m[hourIndex] ?? 0;
 
   const themeKey: ThemeKey = useMemo(
     () => currentTemp > 20 ? "orange" : currentTemp > 15 ? "warm" : "blue",
@@ -267,8 +297,18 @@ export default function WeatherDashboard() {
   const isNight = selectedHour < 6 || selectedHour >= 21;
 
   const radarData = useMemo(
-    () => (data ? adapter.current.normalizeRadarData(data, selectedHour) : []),
-    [data, selectedHour]
+    () => (data ? adapter.current.normalizeRadarData(data, hourIndex) : []),
+    [data, hourIndex]
+  );
+
+  const skyState = useMemo(
+    () => (data ? analyzer.current.getSkyState(data, hourIndex) : null),
+    [data, hourIndex]
+  );
+
+  const activity = useMemo(
+    () => (data ? analyzer.current.getActivityCondition(data, hourIndex) : null),
+    [data, hourIndex]
   );
 
   if (error) {
@@ -289,23 +329,27 @@ export default function WeatherDashboard() {
     >
       {/* Animated background orbs */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div
-          className="absolute w-[700px] h-[700px] rounded-full blur-3xl animate-orb-a"
-          style={{ background: theme.orb1, top: "-25%", right: "-15%" }}
-        />
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full blur-3xl animate-orb-b"
-          style={{ background: theme.orb2, bottom: "-15%", left: "-10%" }}
-        />
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
+        {!isMobile && (
+          <>
+            <div
+              className="absolute w-[700px] h-[700px] rounded-full blur-3xl animate-orb-a"
+              style={{ background: theme.orb1, top: "-25%", right: "-15%" }}
+            />
+            <div
+              className="absolute w-[500px] h-[500px] rounded-full blur-3xl animate-orb-b"
+              style={{ background: theme.orb2, bottom: "-15%", left: "-10%" }}
+            />
+            {/* Subtle grid overlay */}
+            <div
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                backgroundSize: "60px 60px",
+              }}
+            />
+          </>
+        )}
       </div>
 
       {/* Night overlay */}
@@ -315,19 +359,22 @@ export default function WeatherDashboard() {
       />
 
       {/* Rain particles — driven by actual precipitation probability */}
-      <RainParticles precipProb={hourlyData?.precipitation_probability[selectedHour] ?? 0} />
+      <RainParticles precipProb={hourlyData?.precipitation_probability[hourIndex] ?? 0} isMobile={isMobile} />
 
       {/* Condition icon — top-right background decoration */}
       <div className="absolute top-6 right-6 md:top-10 md:right-14 pointer-events-none" style={{ zIndex: 1 }}>
         <ConditionIcon
-          precipProb={hourlyData?.precipitation_probability[selectedHour] ?? 0}
+          precipProb={hourlyData?.precipitation_probability[hourIndex] ?? 0}
           hour={selectedHour}
           isWarm={themeKey !== "blue"}
         />
       </div>
 
       <div className="w-full max-w-4xl space-y-6 relative z-10 animate-fade-up">
-        {/* Header */}
+        {/* Header de marca con relojes mundiales */}
+        <Header theme={theme} isMobile={isMobile} />
+
+        {/* Encabezado de la página */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">
@@ -336,13 +383,13 @@ export default function WeatherDashboard() {
             <button
               onClick={() => setIsMapOpen(true)}
               className={cn(
-                "flex items-center gap-2 mt-2 font-medium hover:opacity-80 transition cursor-pointer group",
+                "flex items-center gap-2 mt-2 font-medium hover:opacity-80 transition cursor-pointer group max-w-full",
                 theme.accentText
               )}
             >
-              <MapPin className="w-4 h-4" />
-              <span className="group-hover:underline underline-offset-4 decoration-2">{cityName}</span>
-              <span className="text-xs opacity-60">(cambiar)</span>
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="group-hover:underline underline-offset-4 decoration-2 truncate min-w-0">{cityName}</span>
+              <span className="text-xs opacity-60 flex-shrink-0">(cambiar)</span>
             </button>
           </div>
 
@@ -351,8 +398,8 @@ export default function WeatherDashboard() {
             className="flex items-center gap-3 px-5 py-3 rounded-2xl self-start md:self-auto"
             style={{
               background: "rgba(255,255,255,0.08)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
+              backdropFilter: isMobile ? "blur(4px)" : "blur(16px)",
+              WebkitBackdropFilter: isMobile ? "blur(4px)" : "blur(16px)",
               border: `1px solid ${theme.border}`,
             }}
           >
@@ -363,14 +410,14 @@ export default function WeatherDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
           {/* ── Main Radar Card ── */}
           <div
             className="lg:col-span-2 rounded-3xl p-6 flex flex-col justify-between transition-all duration-700 animate-card-glow"
             style={{
               background: "rgba(255,255,255,0.06)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
+              backdropFilter: isMobile ? "blur(6px)" : "blur(24px)",
+              WebkitBackdropFilter: isMobile ? "blur(6px)" : "blur(24px)",
               border: `1px solid ${theme.border}`,
               ["--glow" as any]: theme.glowColor,
             }}
@@ -421,40 +468,85 @@ export default function WeatherDashboard() {
           </div>
 
           {/* ── Side cards ── */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 lg:justify-between">
             <InfoCard
               icon={<Thermometer strokeWidth={2} className="w-5 h-5" />}
               label="Temperatura"
               value={isLoading ? null : `${currentTemp}°C`}
               theme={theme}
+              isMobile={isMobile}
             />
             <InfoCard
               icon={<Wind strokeWidth={2} className="w-5 h-5" />}
               label="Viento"
-              value={isLoading ? null : `${hourlyData?.wind_speed_10m[selectedHour]} km/h`}
+              value={isLoading ? null : `${hourlyData?.wind_speed_10m[hourIndex]} km/h`}
               theme={theme}
+              isMobile={isMobile}
             />
             <InfoCard
               icon={<Droplets strokeWidth={2} className="w-5 h-5" />}
               label="Humedad"
-              value={isLoading ? null : `${hourlyData?.relative_humidity_2m[selectedHour]}%`}
+              value={isLoading ? null : `${hourlyData?.relative_humidity_2m[hourIndex]}%`}
               theme={theme}
+              isMobile={isMobile}
             />
 
             <InfoCard
               icon={<CloudRain strokeWidth={2} className="w-5 h-5" />}
               label="Prob. Lluvia"
-              value={isLoading ? null : `${hourlyData?.precipitation_probability[selectedHour]}%`}
+              value={isLoading ? null : `${hourlyData?.precipitation_probability[hourIndex]}%`}
               theme={theme}
+              isMobile={isMobile}
             />
             <InfoCard
               icon={<Sun strokeWidth={2} className="w-5 h-5" />}
               label="Índice UV"
-              value={isLoading ? null : `${hourlyData?.uv_index[selectedHour]}`}
+              value={isLoading ? null : `${hourlyData?.uv_index[hourIndex]}`}
               theme={theme}
+              isMobile={isMobile}
             />
           </div>
         </div>
+
+        {/* ── Pestañas de días, alineadas bajo la card principal ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <DayTabs theme={theme} isMobile={isMobile} selected={selectedDay} onSelect={setSelectedDay} />
+          </div>
+        </div>
+
+        {/* ── Features desplegables ── */}
+        <div className="flex flex-col gap-4">
+          <Feature
+            title="Ver estado del cielo"
+            icon={<Eye strokeWidth={2} className="w-5 h-5" />}
+            theme={theme}
+            isMobile={isMobile}
+          >
+            {skyState && (
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold text-white">{skyState.label}</span>
+                <span className="text-sm text-white/50">{skyState.detail}</span>
+              </div>
+            )}
+          </Feature>
+          <Feature
+            title="Clima para salir a caminar/correr"
+            icon={<Footprints strokeWidth={2} className="w-5 h-5" />}
+            theme={theme}
+            isMobile={isMobile}
+          >
+            {activity && (
+              <div className="flex flex-col gap-1">
+                <span className="text-2xl font-bold text-white">{activity.label}</span>
+                <span className="text-sm text-white/50">{activity.detail}</span>
+              </div>
+            )}
+          </Feature>
+        </div>
+
+        {/* ── Footer ── */}
+        <Footer />
       </div>
 
       {isMapOpen && (

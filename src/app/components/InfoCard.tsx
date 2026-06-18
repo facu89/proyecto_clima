@@ -13,19 +13,20 @@ interface InfoCardProps {
     glowColor: string;
     accentIcon: string;
   };
+  isMobile?: boolean;
 }
 
 export default class InfoCard extends Component<InfoCardProps> {
   render() {
-    const { icon, label, value, theme } = this.props;
+    const { icon, label, value, theme, isMobile } = this.props;
 
     return (
       <div
         className="rounded-2xl p-5 flex items-center justify-between transition-all duration-700"
         style={{
           background: "rgba(255,255,255,0.06)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
+          backdropFilter: isMobile ? "blur(4px)" : "blur(16px)",
+          WebkitBackdropFilter: isMobile ? "blur(4px)" : "blur(16px)",
           border: `1px solid ${theme.border}`,
           boxShadow: "0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07)",
         }}
