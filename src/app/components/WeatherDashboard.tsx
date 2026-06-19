@@ -470,6 +470,11 @@ export default function WeatherDashboard() {
             </div>
           </div>
 
+          {/* Pestañas de días en mobile: bajo la card principal, sobre los datos */}
+          <div className="lg:hidden">
+            <DayTabs theme={theme} isMobile={isMobile} selected={selectedDay} onSelect={setSelectedDay} />
+          </div>
+
           {/* ── Side cards ── */}
           <div className="flex flex-col gap-4 lg:justify-between">
             <InfoCard
@@ -511,11 +516,9 @@ export default function WeatherDashboard() {
           </div>
         </div>
 
-        {/* ── Pestañas de días, alineadas bajo la card principal ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <DayTabs theme={theme} isMobile={isMobile} selected={selectedDay} onSelect={setSelectedDay} />
-          </div>
+        {/* ── Pestañas de días en desktop, ancho completo ── */}
+        <div className="hidden lg:block">
+          <DayTabs theme={theme} isMobile={isMobile} selected={selectedDay} onSelect={setSelectedDay} />
         </div>
 
         {/* ── Features desplegables ── */}
