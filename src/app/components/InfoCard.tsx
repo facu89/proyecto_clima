@@ -2,7 +2,6 @@
 
 import { Component } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 interface InfoCardProps {
   icon: React.ReactNode;
@@ -13,8 +12,10 @@ interface InfoCardProps {
     glowColor: string;
     accentIcon: string;
     accentIconStrong: string;
+    accentIconNight: string;
   };
   isMobile?: boolean;
+  isNight?: boolean;
 }
 
 export default class InfoCard extends Component<InfoCardProps> {
@@ -34,7 +35,7 @@ export default class InfoCard extends Component<InfoCardProps> {
       >
         <div className="flex items-center gap-4">
           <div
-            className={cn("p-3 rounded-full", theme.accentIconStrong)}
+            className="p-3 rounded-full text-white"
             style={{ background: theme.glowColor.replace("0.45", "0.25") }}
           >
             {icon}

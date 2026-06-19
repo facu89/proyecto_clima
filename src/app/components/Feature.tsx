@@ -13,8 +13,10 @@ interface FeatureProps {
     glowColor: string;
     accentIcon: string;
     accentIconStrong: string;
+    accentIconNight: string;
   };
   isMobile?: boolean;
+  isNight?: boolean;
   children?: React.ReactNode;
 }
 
@@ -39,7 +41,7 @@ export default function Feature({ title, icon, theme, isMobile, children }: Feat
         <div className="flex items-center gap-4">
           {icon && (
             <div
-              className={cn("p-3 rounded-full", theme.accentIconStrong)}
+              className="p-3 rounded-full text-white"
               style={{ background: theme.glowColor.replace("0.45", "0.25") }}
             >
               {icon}

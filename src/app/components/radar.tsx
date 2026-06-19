@@ -85,17 +85,11 @@ export default class WeatherRadar extends Component<WeatherRadarProps> {
                 style={{ width: "57%", height: "57%", transformOrigin: "center" }}
               >
                 <svg width="100%" height="100%" viewBox="0 0 100 100">
-                  <defs>
-                    <radialGradient id="trail-grad" cx="50%" cy="50%" r="50%" gradientUnits="objectBoundingBox">
-                      <stop offset="0%"   stopColor={color} stopOpacity="0.0" />
-                      <stop offset="40%"  stopColor={color} stopOpacity="0.12" />
-                      <stop offset="100%" stopColor={color} stopOpacity="0.0" />
-                    </radialGradient>
-                  </defs>
-                  <path d="M 50 50 L 50 0 A 50 50 0 0 0 14.6 14.6 Z" fill={color} fillOpacity="0.14" />
-                  <line x1="50" y1="50" x2="50" y2="1" stroke={color} strokeWidth="1.2" strokeOpacity="0.95" strokeLinecap="round" />
-                  <circle cx="50" cy="50" r="2.5" fill={color} fillOpacity="0.9" />
-                  <circle cx="50" cy="3" r="2" fill={color} fillOpacity="0.7" />
+                  {/* Brazo y estela en gris tenue, que destaquen poco */}
+                  <path d="M 50 50 L 50 0 A 50 50 0 0 0 14.6 14.6 Z" fill="#64748b" fillOpacity="0.07" />
+                  <line x1="50" y1="50" x2="50" y2="1" stroke="#64748b" strokeWidth="1" strokeOpacity="0.3" strokeLinecap="round" />
+                  <circle cx="50" cy="50" r="2.5" fill="#64748b" fillOpacity="0.35" />
+                  <circle cx="50" cy="3" r="2" fill="#64748b" fillOpacity="0.28" />
                 </svg>
               </div>
             </div>

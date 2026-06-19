@@ -50,6 +50,7 @@ const THEME = {
     accentText: "text-orange-300",
     accentIcon: "text-orange-400",
     accentIconStrong: "text-orange-600",
+    accentIconNight: "text-orange-100",
     sliderClass:
       "[&_[role=slider]]:border-orange-400 [&_[role=slider]]:text-orange-400 text-orange-400",
     label: "Clima Cálido",
@@ -64,6 +65,7 @@ const THEME = {
     accentText: "text-amber-300",
     accentIcon: "text-amber-400",
     accentIconStrong: "text-amber-600",
+    accentIconNight: "text-amber-100",
     sliderClass:
       "[&_[role=slider]]:border-amber-400 [&_[role=slider]]:text-amber-400 text-amber-400",
     label: "Clima Templado",
@@ -78,6 +80,7 @@ const THEME = {
     accentText: "text-blue-300",
     accentIcon: "text-blue-400",
     accentIconStrong: "text-blue-600",
+    accentIconNight: "text-blue-100",
     sliderClass:
       "[&_[role=slider]]:border-blue-400 [&_[role=slider]]:text-blue-400 text-blue-400",
     label: "Clima Fresco",
@@ -483,6 +486,7 @@ export default function WeatherDashboard() {
               value={isLoading ? null : `${currentTemp}°C`}
               theme={theme}
               isMobile={isMobile}
+              isNight={isNight}
             />
             <InfoCard
               icon={<Wind strokeWidth={2} className="w-5 h-5" />}
@@ -490,6 +494,7 @@ export default function WeatherDashboard() {
               value={isLoading ? null : `${hourlyData?.wind_speed_10m[hourIndex]} km/h`}
               theme={theme}
               isMobile={isMobile}
+              isNight={isNight}
             />
             <InfoCard
               icon={<Droplets strokeWidth={2} className="w-5 h-5" />}
@@ -497,6 +502,7 @@ export default function WeatherDashboard() {
               value={isLoading ? null : `${hourlyData?.relative_humidity_2m[hourIndex]}%`}
               theme={theme}
               isMobile={isMobile}
+              isNight={isNight}
             />
 
             <InfoCard
@@ -505,6 +511,7 @@ export default function WeatherDashboard() {
               value={isLoading ? null : `${hourlyData?.precipitation_probability[hourIndex]}%`}
               theme={theme}
               isMobile={isMobile}
+              isNight={isNight}
             />
             <InfoCard
               icon={<Sun strokeWidth={2} className="w-5 h-5" />}
@@ -512,6 +519,7 @@ export default function WeatherDashboard() {
               value={isLoading ? null : `${hourlyData?.uv_index[hourIndex]}`}
               theme={theme}
               isMobile={isMobile}
+              isNight={isNight}
             />
           </div>
         </div>
@@ -528,6 +536,7 @@ export default function WeatherDashboard() {
             icon={<Eye strokeWidth={2} className="w-5 h-5" />}
             theme={theme}
             isMobile={isMobile}
+            isNight={isNight}
           >
             {skyState && (
               <div className="flex items-center justify-between">
@@ -541,6 +550,7 @@ export default function WeatherDashboard() {
             icon={<Footprints strokeWidth={2} className="w-5 h-5" />}
             theme={theme}
             isMobile={isMobile}
+            isNight={isNight}
           >
             {activity && (
               <div className="flex flex-col gap-1">
