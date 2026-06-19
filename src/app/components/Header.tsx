@@ -16,9 +16,12 @@ interface HeaderProps {
 }
 
 const CITIES = [
+  // Arranque con guiño a "Me gustas tú" de Manu Chao
   { name: "Buenos Aires", tz: "America/Argentina/Buenos_Aires" },
   { name: "La Habana", tz: "America/Havana" },
   { name: "San Salvador", tz: "America/El_Salvador" },
+  { name: "Managua", tz: "America/Managua" },
+  // Resto de capitales
   { name: "Londres", tz: "Europe/London" },
   { name: "Madrid", tz: "Europe/Madrid" },
   { name: "Nueva York", tz: "America/New_York" },
